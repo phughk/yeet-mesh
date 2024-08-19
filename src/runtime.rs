@@ -28,6 +28,8 @@ where
 }
 
 pub trait Clock {
-    fn sleep(&self, duration: std::time::Duration)
-        -> Pin<Box<dyn Future<Output = Result<(), ()>>>>;
+    fn sleep(
+        &self,
+        duration: std::time::Duration,
+    ) -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send>>;
 }

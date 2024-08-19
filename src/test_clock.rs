@@ -7,7 +7,10 @@ use std::time::Duration;
 pub(super) struct YeetMeshClock {}
 
 impl Clock for YeetMeshClock {
-    fn sleep(&self, duration: Duration) -> Pin<Box<dyn Future<Output = Result<(), ()>> + 'static>> {
+    fn sleep(
+        &self,
+        duration: Duration,
+    ) -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send + 'static>> {
         Box::pin(YeetMeshSleepFuture {})
     }
 }
