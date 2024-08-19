@@ -1,5 +1,12 @@
 pub mod runtime;
-mod test_harness;
-mod test_network;
-mod test_progress;
-mod test_runtime;
+#[cfg(test)]
+mod test;
+mod test_clock;
+#[cfg(feature = "test-mode")]
+pub mod test_harness;
+#[cfg(feature = "test-mode")]
+pub mod test_network;
+#[cfg(feature = "test-mode")]
+pub mod test_progress;
+#[cfg(feature = "test-mode")]
+pub mod test_runtime;

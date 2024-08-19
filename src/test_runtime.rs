@@ -1,5 +1,4 @@
-use crate::runtime::Runtime;
-use crate::test_network::YeetMeshSocket;
+use crate::runtime::{Clock, ConnectionSocket, HostPort, ListenSocket, Runtime};
 use std::future::Future;
 
 /// The runtime is constructed and provided to individual nodes
@@ -12,7 +11,7 @@ impl YeetMeshRuntime {
     }
 }
 
-impl<CLOCK, LISTEN_SOCKET> Runtime<CLOCK, YeetMeshSocket, LISTEN_SOCKET> for YeetMeshRuntime {
+impl Runtime for YeetMeshRuntime {
     fn run_async<O>(&self, f: Box<dyn Future<Output = O> + Send + 'static>) {
         todo!()
     }
@@ -21,15 +20,15 @@ impl<CLOCK, LISTEN_SOCKET> Runtime<CLOCK, YeetMeshSocket, LISTEN_SOCKET> for Yee
         todo!()
     }
 
-    fn clock(&self) -> CLOCK {
+    fn clock(&self) -> &dyn Clock {
         todo!()
     }
 
-    fn connect(&self, host_port: crate::runtime::HostPort) -> YeetMeshSocket {
+    fn connect(&self, host_port: HostPort) -> Box<dyn ConnectionSocket> {
         todo!()
     }
 
-    fn bind(&self, addr: crate::runtime::HostPort) -> LISTEN_SOCKET {
+    fn bind(&self, addr: HostPort) -> Box<dyn ListenSocket<dyn ConnectionSocket>> {
         todo!()
     }
 }

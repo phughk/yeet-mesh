@@ -3,5 +3,13 @@ name = "yeet-mesh"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+test-mode = []
+
 [dependencies]
+async-task = "4.7.1"
 rand = "0.8.5"
+
+[dev-dependencies]
+# Enable the feature flag for tests
+yeet-mesh = { path = ".", features = ["test-mode"] }

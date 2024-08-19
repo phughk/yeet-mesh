@@ -1,48 +1,68 @@
 use crate::runtime::Runtime;
-use crate::test_network::YeetMeshSocket;
 use crate::test_progress::TestProgress;
 use crate::test_runtime::YeetMeshRuntime;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use std::future::Future;
-use std::sync::Mutex;
+use std::mem;
+use std::pin::Pin;
+use std::sync::{Arc, Mutex};
+
+/// NodeInit is effectively an initializer that accepts a runtime and returns a
+/// synchronous state polling function alongside the future
+type NodeInit<R, STATE, OUTPUT>
+where
+    R: Runtime,
+    OUTPUT: Send,
+= Box<
+    dyn FnOnce(
+        R,
+    ) -> (
+        Box<dyn Fn() -> STATE>,
+        Pin<Box<dyn Future<Output = OUTPUT> + Send + 'static>>,
+    ),
+>;
 
 /// YeetMeshTest handles a single test environment, by allowing
 /// test configuration and injecting the runtimes into the provided node
 /// initialisation functions. The nodes then have a way to interact with
 /// each other in a controlled and deterministic way.
-pub struct YeetMeshTest<O> {
+pub struct YeetMeshTest<STATE, OUTPUT> {
     prng: Mutex<StdRng>,
-    nodes: Vec<Box<dyn Future<Output = O>>>,
+    // Node inits are nodes yet to be initialised
+    // Nodes can be added during execution
+    node_init: Mutex<Vec<NodeInit<YeetMeshRuntime, STATE, OUTPUT>>>,
 }
 
-/// NodeInit is effectively an initializer that accepts a runtime and returns a
-/// synchronous state polling function alongside the future
-type NodeInit<R, CLOCK, SOCKET, LIST_SOCK>
-where
-    R: Runtime<CLOCK, SOCKET, LIST_SOCK>,
-= Box<dyn FnOnce(R) -> ()>;
-
-impl<O> YeetMeshTest<O> {
-    pub fn new<SEED>(seed: SEED) -> Self
+impl<STATE, OUTPUT: Send + 'static> YeetMeshTest<STATE, OUTPUT> {
+    pub fn new<SEED>(mut seed: SEED) -> Self
     where
         SEED: Sized + Default + AsMut<[u8]>,
     {
+        let mut real_seed = [0u8; 32];
+        real_seed.as_mut().copy_from_slice(seed.as_mut());
+        let rng = StdRng::from_seed(real_seed);
         Self {
-            prng: Mutex::new(StdRng::from_seed(seed)),
-            nodes: vec![],
+            prng: Mutex::new(rng),
+            node_init: Mutex::new(vec![]),
         }
     }
 
     /// Store an initialization function that gets called when the test starts
     ///
-    /// TODO: It would be really cool, if a node were able to provide a status struct
-    /// Such a struct can be used to verify invariants
-    pub fn add_node(
-        &mut self,
-        node_init: NodeInit<YeetMeshRuntime, CLOCK, YeetMeshSocket, LIST_SOCK>,
-    ) {
-        self.nodes.push(node_init);
+    /// When additional nodes are added after test start, they will be started in
+    /// random deterministic iterations
+    pub fn add_node(&mut self, node_init: NodeInit<YeetMeshRuntime, STATE, OUTPUT>) {
+        self.node_init
+            .try_lock()
+            .map_err(|e| {
+                format!(
+                    "Failed to add node because the test nodes list is locked: {}",
+                    e
+                )
+            })
+            .unwrap()
+            .push(node_init);
     }
 
     /// Starts all the nodes that have been added to the cluster and runs
@@ -51,7 +71,25 @@ impl<O> YeetMeshTest<O> {
     ///
     /// This does not consume the test harness, so both the test harness
     /// and the returned future can be interacted with
-    pub fn start_test(&self) -> TestProgress {
+    pub fn start_test(&self) -> TestProgress<STATE, OUTPUT> {
         // Start the test
+        let mut nodes = self.node_init.try_lock().unwrap();
+        let futures = Arc::new(Mutex::new(Vec::with_capacity(nodes.len())));
+        let mut states = vec![];
+        // We replace the vec behind the mutex with an empty one
+        let nodes = { mem::take(&mut *nodes) };
+        for node in nodes.into_iter() {
+            let runtime = YeetMeshRuntime {};
+            let (state, future) = node(runtime);
+            let futures = futures.clone();
+            let (_runnable, _task) =
+                async_task::spawn(future, move |res| futures.try_lock().unwrap().push(res));
+            states.push(state);
+        }
+        TestProgress {
+            runtime: self,
+            futures: vec![],
+            states,
+        }
     }
 }

@@ -1,3 +1,4 @@
+use crate::runtime::ListenSocket;
 use std::io::{Read, Write};
 
 /// A network interface that tracks peer-to-peer connections
@@ -29,6 +30,14 @@ impl Write for YeetMeshSocket {
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
+        todo!()
+    }
+}
+
+pub(super) struct YeetMeshListenSocket {}
+
+impl ListenSocket<YeetMeshSocket> for YeetMeshListenSocket {
+    fn accept(&self) -> YeetMeshSocket {
         todo!()
     }
 }
