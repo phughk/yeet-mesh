@@ -9,7 +9,7 @@ pub(super) struct YeetMeshClock {}
 impl Clock for YeetMeshClock {
     fn sleep(
         &self,
-        duration: Duration,
+        _duration: Duration,
     ) -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send + 'static>> {
         Box::pin(YeetMeshSleepFuture {})
     }
@@ -20,7 +20,7 @@ pub struct YeetMeshSleepFuture {}
 impl Future for YeetMeshSleepFuture {
     type Output = Result<(), ()>;
 
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         todo!()
     }
 }

@@ -5,36 +5,36 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 use std::future::Future;
 use std::mem;
-use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 
 /// NodeInit is effectively an initializer that accepts a runtime and returns a
 /// synchronous state polling function alongside the future
-type NodeInit<R, STATE, OUTPUT>
+type NodeInit<R, STATE, OUTPUT, F>
 where
     R: Runtime,
     OUTPUT: Send,
-= Box<
-    dyn FnOnce(
-        R,
-    ) -> (
-        Box<dyn Fn() -> STATE>,
-        Pin<Box<dyn Future<Output = OUTPUT> + Send + 'static>>,
-    ),
->;
+    F: Future<Output = OUTPUT> + Send,
+= Box<dyn FnOnce(R) -> (NodeInitStateSupplier<STATE>, NodeInitEntryPoint<OUTPUT, F>)>;
+
+/// NodeInitStateSupplier is a function that returns the current state of a node
+type NodeInitStateSupplier<STATE> = Box<dyn Fn() -> STATE>;
+
+/// NodeInitEntryPoint is a function that is called with the runtime and is the future of the
+/// entrypoint of the node
+type NodeInitEntryPoint<OUTPUT, F: Future<Output = OUTPUT> + Send> = Box<F>;
 
 /// YeetMeshTest handles a single test environment, by allowing
 /// test configuration and injecting the runtimes into the provided node
 /// initialisation functions. The nodes then have a way to interact with
 /// each other in a controlled and deterministic way.
-pub struct YeetMeshTest<STATE, OUTPUT> {
+pub struct YeetMeshTest<STATE, OUTPUT, F> {
     prng: Mutex<StdRng>,
     // Node inits are nodes yet to be initialised
     // Nodes can be added during execution
-    node_init: Mutex<Vec<NodeInit<YeetMeshRuntime, STATE, OUTPUT>>>,
+    node_init: Mutex<Vec<NodeInit<YeetMeshRuntime, STATE, OUTPUT, F>>>,
 }
 
-impl<STATE, OUTPUT: Send + 'static> YeetMeshTest<STATE, OUTPUT> {
+impl<STATE, OUTPUT: Send + 'static, F> YeetMeshTest<STATE, OUTPUT, F> {
     pub fn new<SEED>(mut seed: SEED) -> Self
     where
         SEED: Sized + Default + AsMut<[u8]>,
@@ -52,7 +52,7 @@ impl<STATE, OUTPUT: Send + 'static> YeetMeshTest<STATE, OUTPUT> {
     ///
     /// When additional nodes are added after test start, they will be started in
     /// random deterministic iterations
-    pub fn add_node(&mut self, node_init: NodeInit<YeetMeshRuntime, STATE, OUTPUT>) {
+    pub fn add_node(&mut self, node_init: NodeInit<YeetMeshRuntime, STATE, OUTPUT, F>) {
         self.node_init
             .try_lock()
             .map_err(|e| {

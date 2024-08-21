@@ -11,7 +11,7 @@ impl YeetMeshNetwork {
         YeetMeshNetwork {}
     }
 
-    pub fn new_interface(&self, hostname: String) {}
+    pub fn new_interface(&self, _hostname: String) {}
 }
 
 /// YeetMeshSocket represents a peer to peer connection, whether initated from a client
@@ -19,13 +19,13 @@ impl YeetMeshNetwork {
 pub(super) struct YeetMeshSocket {}
 
 impl Read for YeetMeshSocket {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+    fn read(&mut self, _buf: &mut [u8]) -> std::io::Result<usize> {
         todo!()
     }
 }
 
 impl Write for YeetMeshSocket {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+    fn write(&mut self, _buf: &[u8]) -> std::io::Result<usize> {
         todo!()
     }
 

@@ -3,7 +3,7 @@ use std::future::Future;
 
 /// The runtime is constructed and provided to individual nodes
 /// allowing for customisation of IO and execution
-pub(super) struct YeetMeshRuntime {}
+pub struct YeetMeshRuntime {}
 
 impl YeetMeshRuntime {
     pub fn new() -> Self {
@@ -12,23 +12,23 @@ impl YeetMeshRuntime {
 }
 
 impl Runtime for YeetMeshRuntime {
-    fn run_async<O>(&self, f: Box<dyn Future<Output = O> + Send + 'static>) {
+    fn run_async<F: Future + Send>(&self, _f: F) {
         todo!()
     }
 
-    fn run_async_local<O>(&self, f: Box<dyn Future<Output = O> + 'static>) {
+    fn run_async_local<F: Future + Send>(&self, _f: F) {
         todo!()
     }
 
-    fn clock(&self) -> &dyn Clock {
+    fn clock(&self) -> Box<&dyn Clock> {
         todo!()
     }
 
-    fn connect(&self, host_port: HostPort) -> Box<dyn ConnectionSocket> {
+    fn connect(&self, _host_port: HostPort) -> Box<dyn ConnectionSocket> {
         todo!()
     }
 
-    fn bind(&self, addr: HostPort) -> Box<dyn ListenSocket<dyn ConnectionSocket>> {
+    fn bind(&self, _addr: HostPort) -> Box<dyn ListenSocket<dyn ConnectionSocket>> {
         todo!()
     }
 }

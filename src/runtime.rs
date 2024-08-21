@@ -9,11 +9,11 @@ pub trait ConnectionSocket: Read + Write {}
 /// Runtime is how your application interacts with the world
 pub trait Runtime {
     /// Run async function that can move between threads
-    fn run_async<O>(&self, f: Box<dyn Future<Output = O> + Send + 'static>);
+    fn run_async<F: Future + Send>(&self, f: F);
     /// Run async function that is local to the current thread
-    fn run_async_local<O>(&self, f: Box<dyn Future<Output = O> + 'static>);
+    fn run_async_local<F: Future + Send>(&self, f: F);
     /// Get clock, that during tests will be controllable
-    fn clock(&self) -> &dyn Clock;
+    fn clock(&self) -> Box<&dyn Clock>;
     /// Connect to a remote node
     fn connect(&self, host_port: HostPort) -> Box<dyn ConnectionSocket>;
     /// Bind to a port and listen for connections
